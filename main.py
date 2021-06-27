@@ -23,7 +23,7 @@ import requests
 from city import a
 import threading
 import json
-
+from Crypto.Hash import SHA256
 base = "http://127.0.0.1:5000/"
 
 # gps_url = 'http://ipinfo.io/json'
@@ -93,11 +93,11 @@ class SignUpForm(QWidget):
     def signUp(self):
         #call sign up api
         gender = 0 if self.comboBox.currentText() == "Male" else 1 if self.comboBox.currentText() == "FeMale" else 2
-        data = {"username":self.lineEdit.text(),"fullName":self.lineEdit_3.text(), "birthYear":int(self.lineEdit_5.text()),"gender": gender,"password":self.lineEdit_2.text(),
+        sha = SHA256.new(bytes(self.lineEdit_2.text(),'utf-8'))
+        hashed_pass = str(sha.hexdigest())
+        data = {"username":self.lineEdit.text(),"fullName":self.lineEdit_3.text(), "birthYear":int(self.lineEdit_5.text()),"gender": gender,"password":hashed_pass,
                       "avatarUrl":"ava.png","currentCity":"Hà Nội"}
-        print(data)
         res = requests.post(base+'signUp', json=data).json()
-        print(res)
         if (res['msg'] == "success"):
             msg = QMessageBox()
             msg.setWindowTitle("Sign Up Successfully")
@@ -133,11 +133,12 @@ class LoginForm(QWidget):
         self.manager.resize("main_size")
     def login(self):
         #call login api
-        data = {'username': self.lineEdit.text(), 'password': self.lineEdit_2.text()}
+        sha = SHA256.new(bytes(self.lineEdit_2.text(),'utf-8'))
+        hashed_pass = str(sha.hexdigest())
+        data = {'username': self.lineEdit.text(), 'password': hashed_pass}
         res = requests.post(base+'login', json=data).json()
         if (res['msg'] == "true"):
-            res.pop('msg')
-            self.manager.user = res
+            self.manager.user = res['data']
             self.toMain(self.manager.user)
         else:
             msg = QMessageBox()
@@ -204,6 +205,7 @@ class MainWindow(QWidget):
     def gen_personal_data(self,user):
         #calculate age from date of birth
         # ...
+        print(user)
         index = self.comboBox.findText(user['currentCity'], QtCore.Qt.MatchFixedString)
         if index >= 0:
             self.comboBox.setCurrentIndex(index)
