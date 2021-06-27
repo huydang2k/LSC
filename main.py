@@ -33,10 +33,12 @@ base = "http://127.0.0.1:5000/"
 #     print('Ip: {0}, org: {1}, city: {2}, country: {3}, region: {4}'.format(ip,org,city,country,region))
 from city import a
 i = 0
+
 for d in a:
     d['province_code'] = i
     i += 1
 
+timer = None
 list = []
 def city_to_code(province:str):
     province_code = '3' #Hà Nội - mặc định
@@ -47,7 +49,7 @@ def city_to_code(province:str):
 def code_to_city(code:str):
     province = "Hà Nội" #mặc định
     for x in a:
-        if (x['province_code'] == code):
+        if (x['province_code'] == int(code)):
             province = x['province']
     return province
 class App(QStackedWidget):
@@ -141,6 +143,9 @@ class LoginForm(QWidget):
         self.manager.setCurrentIndex(self.manager.currentIndex() + 1)
         self.manager.main_window.gen_personal_data(user)
         self.manager.resize("main_size")
+        #auto update per 20s   
+        # global timer 
+        # timer = self.manager.main_window.set_interval(self.manager.main_window.locate_me,5)
     def login(self):
         #call login api
         sha = SHA256.new(bytes(self.lineEdit_2.text(),'utf-8'))
@@ -148,6 +153,8 @@ class LoginForm(QWidget):
         data = {'username': self.lineEdit.text(), 'password': hashed_pass}
         res = requests.post(base+'login', json=data).json()
         if (res['msg'] == "true"):
+            print('login data')
+            print(res['data'])
             self.manager.user = res['data']
             self.toMain(self.manager.user)
         else:
@@ -185,32 +192,33 @@ class MainWindow(QWidget):
         self.lay = QVBoxLayout()
         self.scrollAreaWidgetContents.setLayout(self.lay)
         self.lay.setSpacing(10)
-    #for future work
-    # def update_locate_periodicly(self):
-    #     # call update locate api
-    #     print('update')
-    #     location = self.main_window.comboBox.currentText()
-    #     data = {'userId': self.user['userId'], 'currentCity': location}
-    #     res = requests.post(base+'update_locate', json=data).json()
+        
+    
     # def set_interval(self,func, sec):
     #     def func_wrapper():
     #         self.set_interval(func, sec)
     #         func()
-    #
+    
     #     t = threading.Timer(sec, func_wrapper)
     #     t.start()
     #     return t
     def locate_me(self):
+        print('auto_locate')
         gps_url = 'http://ipinfo.io/json'
         response = urlopen(gps_url)
         gps_data = json.load(response)  
-        print(gps_data)
+        
         # ip = gps_data['ip']
         # org = gps_data['org']
         province = gps_data['region']
+        print(province)
         index = self.comboBox.findText(province, QtCore.Qt.MatchFixedString)
         if index >= 0:
             self.comboBox.setCurrentIndex(index)
+        location = self.comboBox.currentText()
+        city_code = city_to_code(location)
+        data = {'userId': self.manager.user['userId'], 'currentCity': city_code}
+        res = requests.post(base+'update_locate', json=data).json()
     def on_choose(self,index):
         location = self.comboBox.model().itemFromIndex(index).text()
 
@@ -229,8 +237,7 @@ class MainWindow(QWidget):
     def gen_personal_data(self,user):
         #calculate age from date of birth
         # ...
-        print('current_user')
-        print(user)
+        print('current_user city')
         index = self.comboBox.findText(code_to_city(user['currentCity']), QtCore.Qt.MatchFixedString)
         if index >= 0:
             self.comboBox.setCurrentIndex(index)
@@ -254,6 +261,7 @@ class MainWindow(QWidget):
         self.manager.setCurrentIndex(self.manager.currentIndex() - 1)
         self.manager.resize("login_size")
         self.manager.clear_data()
+        # timer.cancel()
     def search(self):
         self.clear_data()
         location = self.comboBox.currentText()
