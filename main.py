@@ -26,16 +26,11 @@ import json
 from Crypto.Hash import SHA256
 base = "http://127.0.0.1:5000/"
 
-# gps_url = 'http://ipinfo.io/json'
-# response = urlopen(gps_url)
-# gps_data = json.load(response)
-#
-# ip = gps_data['ip']
-# org = gps_data['org']
-# city = gps_data['province']
-# country = gps_data['country']
-# region = gps_data['region']
-# print('Ip: {0}, org: {1}, city: {2}, country: {3}, region: {4}'.format(ip,org,city,country,region))
+# def locate_me():
+    
+#     country = gps_data['country']
+#     region = gps_data['region']
+#     print('Ip: {0}, org: {1}, city: {2}, country: {3}, region: {4}'.format(ip,org,city,country,region))
 from city import a
 i = 0
 for d in a:
@@ -178,7 +173,7 @@ class MainWindow(QWidget):
         uic.loadUi('mainwindow.ui',self)
         self.pushButton_2.clicked.connect(self.toLogin)
         self.pushButton.clicked.connect(self.search)
-
+        self.pushButton_3.clicked.connect(self.locate_me)
         self.comboBox.view().pressed.connect(self.on_choose)
         #province select dropdown
         for i in range(64):
@@ -205,6 +200,17 @@ class MainWindow(QWidget):
     #     t = threading.Timer(sec, func_wrapper)
     #     t.start()
     #     return t
+    def locate_me(self):
+        gps_url = 'http://ipinfo.io/json'
+        response = urlopen(gps_url)
+        gps_data = json.load(response)  
+        print(gps_data)
+        # ip = gps_data['ip']
+        # org = gps_data['org']
+        province = gps_data['region']
+        index = self.comboBox.findText(province, QtCore.Qt.MatchFixedString)
+        if index >= 0:
+            self.comboBox.setCurrentIndex(index)
     def on_choose(self,index):
         location = self.comboBox.model().itemFromIndex(index).text()
 
