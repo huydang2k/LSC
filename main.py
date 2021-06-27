@@ -20,7 +20,7 @@ import re
 import json
 from urllib.request import urlopen
 import requests
-from city import a
+
 import threading
 import json
 from Crypto.Hash import SHA256
@@ -32,14 +32,29 @@ base = "http://127.0.0.1:5000/"
 #
 # ip = gps_data['ip']
 # org = gps_data['org']
-# city = gps_data['city']
+# city = gps_data['province']
 # country = gps_data['country']
 # region = gps_data['region']
 # print('Ip: {0}, org: {1}, city: {2}, country: {3}, region: {4}'.format(ip,org,city,country,region))
-
+from city import a
+i = 0
+for d in a:
+    d['province_code'] = i
+    i += 1
 
 list = []
-
+def city_to_code(province:str):
+    province_code = '3' #Hà Nội - mặc định
+    for x in a:
+        if (x['province'] == province):
+            province_code = x['province_code']
+    return str(province_code)
+def code_to_city(code:str):
+    province = "Hà Nội" #mặc định
+    for x in a:
+        if (x['province_code'] == code):
+            province = x['province']
+    return province
 class App(QStackedWidget):
     login_size = {
         "width":350,
@@ -63,7 +78,7 @@ class App(QStackedWidget):
         self.signup = SignUpForm(self)
         self.addWidget(self.signup)
         self.user  = {"username":"huydang2k3","fullName":"Huy Dang", "age":"21","gender": "Male","password":"123",
-                      "avatarUrl":"", "counter":"","currentCity":""}
+                      "avatarUrl":"", "counter":"","currentCity":"1"}
         self.resize("login_size")
         #self.set_interval(self.update_locate_periodicly, 15)
 
@@ -96,7 +111,7 @@ class SignUpForm(QWidget):
         sha = SHA256.new(bytes(self.lineEdit_2.text(),'utf-8'))
         hashed_pass = str(sha.hexdigest())
         data = {"username":self.lineEdit.text(),"fullName":self.lineEdit_3.text(), "birthYear":int(self.lineEdit_5.text()),"gender": gender,"password":hashed_pass,
-                      "avatarUrl":"ava.png","currentCity":"Hà Nội"}
+                      "avatarUrl":"ava.png","currentCity":"3"}
         res = requests.post(base+'signUp', json=data).json()
         if (res['msg'] == "success"):
             msg = QMessageBox()
@@ -192,7 +207,10 @@ class MainWindow(QWidget):
     #     return t
     def on_choose(self,index):
         location = self.comboBox.model().itemFromIndex(index).text()
-        data = {'userId': self.manager.user['userId'], 'currentCity': location}
+
+        city_code = city_to_code(location)
+
+        data = {'userId': self.manager.user['userId'], 'currentCity': city_code}
         res = requests.post(base+'update_locate', json=data).json()
         if (res['msg'] != "success"):
             msg = QMessageBox()
@@ -205,12 +223,14 @@ class MainWindow(QWidget):
     def gen_personal_data(self,user):
         #calculate age from date of birth
         # ...
+        print('current_user')
         print(user)
-        index = self.comboBox.findText(user['currentCity'], QtCore.Qt.MatchFixedString)
+        index = self.comboBox.findText(code_to_city(user['currentCity']), QtCore.Qt.MatchFixedString)
         if index >= 0:
             self.comboBox.setCurrentIndex(index)
         self.label.setText(user['fullName'])
-        self.label_3.setText(str(user['gender']))
+        gender = "Male" if user['gender'] == 0 else "Female" if user['gender'] == 1 else "Third gender"
+        self.label_3.setText(gender)
         self.label_6.setText(str(user['age']))
         self.label_4.setText(user['username'])
 
@@ -230,20 +250,21 @@ class MainWindow(QWidget):
         self.manager.clear_data()
     def search(self):
         self.clear_data()
-        # location = self.comboBox.currentText()
-        # data = {'userId': str(self.manager.user['userId']), 'currentCity': location}
-        # res = requests.get(base+'search', json=data).json()
-        # response = requests.get(base + 'h')
-        # print(res)
+        location = self.comboBox.currentText()
+        city_code = city_to_code(location)
+        data = {'userId': int(self.manager.user['userId']), 'currentCity': city_code}
+        res = requests.get(base+'search', json=data).json()
+        print('Search_result:')
+        print(res)
         # users = res
-        users = [{"fullName": "Huy Dang", "age": "21", "gender": "Male"},
-                 {"fullName": "Son Mai", "age": "21", "gender": "Male"}
-                 ]
+        # users = [{"fullName": "Huy Dang", "age": "21", "gender": "Male"},
+        #          {"fullName": "Son Mai", "age": "21", "gender": "Male"}
+        #          ]
         # create a user box
         if (False):
             return
         else:
-            for u in users:
+            for u in res['data']:
                 horizontalLayoutWidget = QtWidgets.QWidget()
                 # horizontalLayoutWidget.setGeometry(QtCore.QRect(220, 20, 160, 54))
                 horizontalLayoutWidget.setObjectName("horizontalLayoutWidget")
@@ -272,7 +293,8 @@ class MainWindow(QWidget):
                 # age
                 label_3 = QtWidgets.QLabel(horizontalLayoutWidget)
                 label_3.setObjectName("label_3")
-                label_3.setText(u['gender'] + ', ' + u["age"])
+                gender = 'Male, ' if u['gender'] == 0 else 'Female, ' if u['gender'] == 1 else ''
+                label_3.setText(gender + str(u["age"]))
                 verticalLayout.addWidget(label_3)
 
 app = QApplication(sys.argv)
