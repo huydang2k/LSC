@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>369</width>
+    <width>400</width>
     <height>564</height>
    </rect>
   </property>
@@ -16,7 +16,7 @@
   <widget class="QPushButton" name="pushButton_2">
    <property name="geometry">
     <rect>
-     <x>180</x>
+     <x>280</x>
      <y>100</y>
      <width>75</width>
      <height>23</height>
@@ -108,7 +108,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>Nam</string>
+    <string>Female</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_4">
@@ -137,7 +137,7 @@
     <string/>
    </property>
    <property name="pixmap">
-    <pixmap>ava.png</pixmap>
+    <pixmap>../../../../../../../Users/ADMIN/.designer/backup/ava.png</pixmap>
    </property>
   </widget>
   <widget class="QLabel" name="label_6">
@@ -164,6 +164,19 @@
    </property>
    <property name="text">
     <string>Locate Me</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushButton_4">
+   <property name="geometry">
+    <rect>
+     <x>184</x>
+     <y>100</y>
+     <width>81</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Change Avatar</string>
    </property>
   </widget>
  </widget>

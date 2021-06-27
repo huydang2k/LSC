@@ -181,6 +181,7 @@ class MainWindow(QWidget):
         self.pushButton_2.clicked.connect(self.toLogin)
         self.pushButton.clicked.connect(self.search)
         self.pushButton_3.clicked.connect(self.locate_me)
+        self.pushButton_4.clicked.connect(self.upload_file)
         self.comboBox.view().pressed.connect(self.on_choose)
         #province select dropdown
         for i in range(64):
@@ -202,6 +203,24 @@ class MainWindow(QWidget):
     #     t = threading.Timer(sec, func_wrapper)
     #     t.start()
     #     return t
+    def upload_file(self):
+        fname = QFileDialog.getOpenFileName(self, 'Open file', 'c:\\', "Image files (*.jpg *.gif *.png)")
+        imagePath = fname[0]
+        print(self.manager.user['userId'])
+        files = {'file': open(imagePath,'rb')}
+        user_id = self.manager.user['userId']
+        values = {'userId':user_id}
+        res = requests.post(base + 'upload/'+str(user_id) , files=files, data=values).json()
+
+        if (res['msg'] != "success"):
+            msg = QMessageBox()
+            msg.setWindowTitle("Update Fail")
+            msg.setText("Server error. Can't change avatar")
+            msg.exec_()
+        else:
+            print(res['data'])
+            self.manager.user['avatarUrl'] = res['data']
+            self.gen_personal_data(self.manager.user)
     def locate_me(self):
         print('auto_locate')
         gps_url = 'http://ipinfo.io/json'
@@ -247,7 +266,7 @@ class MainWindow(QWidget):
         self.label_6.setText(str(user['age']))
         self.label_4.setText(user['username'])
 
-        url = base + "static/ava2.png"
+        url = base + "static/" + user['avatarUrl']
         img = QImage()
         img.loadFromData(requests.get(url).content)
         self.label_5.setPixmap(QPixmap(img))
@@ -290,7 +309,13 @@ class MainWindow(QWidget):
                 # ava
                 label = QtWidgets.QLabel(horizontalLayoutWidget)
                 label.setText("")
-                label.setPixmap(QtGui.QPixmap("ava.png"))
+
+                url = base + "static/" + u['avatarUrl']
+                img = QImage()
+                img.loadFromData(requests.get(url).content)
+                label.setPixmap(QPixmap(img))
+
+                
                 label.setObjectName("label")
                 horizontalLayout.addWidget(label)
 
