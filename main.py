@@ -74,8 +74,7 @@ class App(QStackedWidget):
         self.addWidget(self.main_window)
         self.signup = SignUpForm(self)
         self.addWidget(self.signup)
-        self.user  = {"username":"huydang2k3","fullName":"Huy Dang", "age":"21","gender": "Male","password":"123",
-                      "avatarUrl":"", "counter":"","currentCity":"1"}
+        self.user  = {"userId":None}
         self.resize("login_size")
         #self.set_interval(self.update_locate_periodicly, 15)
 
@@ -150,11 +149,11 @@ class LoginForm(QWidget):
         #call login api
         sha = SHA256.new(bytes(self.lineEdit_2.text(),'utf-8'))
         hashed_pass = str(sha.hexdigest())
+        print(hashed_pass)
         data = {'username': self.lineEdit.text(), 'password': hashed_pass}
         res = requests.post(base+'login', json=data).json()
-        if (res['msg'] == "true"):
-            print('login data')
-            print(res['data'])
+        print(res)
+        if (res['msg'] == "success"):
             self.manager.user = res['data']
             self.toMain(self.manager.user)
         else:
@@ -206,21 +205,23 @@ class MainWindow(QWidget):
     def upload_file(self):
         fname = QFileDialog.getOpenFileName(self, 'Open file', 'c:\\', "Image files (*.jpg *.gif *.png)")
         imagePath = fname[0]
-        print(self.manager.user['userId'])
-        files = {'file': open(imagePath,'rb')}
-        user_id = self.manager.user['userId']
-        values = {'userId':user_id}
-        res = requests.post(base + 'upload/'+str(user_id) , files=files, data=values).json()
+        if (imagePath != "" and imagePath != None):
+            print(self.manager.user['userId'])
+            files = {'file': open(imagePath,'rb')}
+            userid = self.manager.user['userId']
+            values = {'userId':userid}
+            res = requests.post(base + 'upload/'+str(userid) , files=files, data=values).json()
 
-        if (res['msg'] != "success"):
-            msg = QMessageBox()
-            msg.setWindowTitle("Update Fail")
-            msg.setText("Server error. Can't change avatar")
-            msg.exec_()
-        else:
-            print(res['data'])
-            self.manager.user['avatarUrl'] = res['data']
-            self.gen_personal_data(self.manager.user)
+            if (res['msg'] != "success"):
+                msg = QMessageBox()
+                msg.setWindowTitle("Update Fail")
+                msg.setText("Server error. Can't change avatar")
+                msg.exec_()
+            else:
+                print(res['data'])
+                self.manager.user['avatarUrl'] = res['data']
+                self.gen_personal_data(self.manager.user)
+        
     def locate_me(self):
         print('auto_locate')
         gps_url = 'http://ipinfo.io/json'
@@ -236,14 +237,17 @@ class MainWindow(QWidget):
             self.comboBox.setCurrentIndex(index)
         location = self.comboBox.currentText()
         city_code = city_to_code(location)
-        data = {'userId': self.manager.user['userId'], 'currentCity': city_code}
+        city_hashed_code = hash_city(city_code)
+        data = {'userId': self.manager.user['userId'], 'currentCity': city_hashed_code}
+        print('update locate when login')
+        print(data)
         res = requests.post(base+'update_locate', json=data).json()
     def on_choose(self,index):
         location = self.comboBox.model().itemFromIndex(index).text()
 
         city_code = city_to_code(location)
-
-        data = {'userId': self.manager.user['userId'], 'currentCity': city_code}
+        city_hashed_code = hash_city(city_code)
+        data = {'userId': self.manager.user['userId'], 'currentCity': city_hashed_code}
         res = requests.post(base+'update_locate', json=data).json()
         if (res['msg'] != "success"):
             msg = QMessageBox()
@@ -256,10 +260,8 @@ class MainWindow(QWidget):
     def gen_personal_data(self,user):
         #calculate age from date of birth
         # ...
-        print('current_user city')
-        index = self.comboBox.findText(code_to_city(user['currentCity']), QtCore.Qt.MatchFixedString)
-        if index >= 0:
-            self.comboBox.setCurrentIndex(index)
+        self.locate_me()
+        
         self.label.setText(user['fullName'])
         gender = "Male" if user['gender'] == 0 else "Female" if user['gender'] == 1 else "Third gender"
         self.label_3.setText(gender)
@@ -274,9 +276,10 @@ class MainWindow(QWidget):
     def clear_data(self):
         for i in reversed(range(self.lay.count())):
             self.lay.itemAt(i).widget().setParent(None)
-    def change_ava(self):
-        return
     def toLogin(self):
+        if (self.manager.user['userId'] != None):
+            data = {'userId':self.manager.user['userId']}
+            requests.post(base+'logout', json=data).json()
         self.manager.setCurrentIndex(self.manager.currentIndex() - 1)
         self.manager.resize("login_size")
         self.manager.clear_data()
@@ -285,7 +288,8 @@ class MainWindow(QWidget):
         self.clear_data()
         location = self.comboBox.currentText()
         city_code = city_to_code(location)
-        data = {'userId': int(self.manager.user['userId']), 'currentCity': city_code}
+        city_hashed_code = hash_city(city_code)
+        data = {'userId': int(self.manager.user['userId']), 'currentCity': city_hashed_code}
         res = requests.get(base+'search', json=data).json()
         print('Search_result:')
         print(res)
@@ -342,9 +346,20 @@ list.append(widgets)
 widgets.show()
 
 
-
+    
+def hash_city(code:str):
+    print('hash_code city')
+    print(code)
+    sha = SHA256.new(bytes(code,'utf-8'))
+    hashed_ = int.from_bytes(sha.digest(),'big')
+    print('result')
+    print(hashed_)
+    return str(hashed_)
 
 try:
     sys.exit(app.exec_())
 except:
+    if (widgets.user['userId'] != None):
+        data = {"userId":widgets.user['userId']}
+        requests.post(base+'logout', json=data).json()
     print('Closing')
