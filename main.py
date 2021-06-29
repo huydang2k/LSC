@@ -52,6 +52,22 @@ def code_to_city(code:str):
         if (x['province_code'] == int(code)):
             province = x['province']
     return province
+
+def map_city_vnese(input_str):
+    s1 = u'ÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÝàáâãèéêìíòóôõùúýĂăĐđĨĩŨũƠơƯưẠạẢảẤấẦầẨẩẪẫẬậẮắẰằẲẳẴẵẶặẸẹẺẻẼẽẾếỀềỂểỄễỆệỈỉỊịỌọỎỏỐốỒồỔổỖỗỘộỚớỜờỞởỠỡỢợỤụỦủỨứỪừỬửỮữỰựỲỳỴỵỶỷỸỹ'
+    s0 = u'AAAAEEEIIOOOOUUYaaaaeeeiioooouuyAaDdIiUuOoUuAaAaAaAaAaAaAaAaAaAaAaAaEeEeEeEeEeEeEeEeIiIiOoOoOoOoOoOoOoOoOoOoOoOoUuUuUuUuUuUuUuYyYyYyYy'
+    s = ''
+	
+    print(input_str.encode('utf-8'))
+    for c in input_str:
+        if c in s1:
+            s += s0[s1.index(c)]
+        else:
+            s += c
+    return s.lower().replace(' ','')
+    
+
+map_low_up = {}
 class App(QStackedWidget):
     login_size = {
         "width":350,
@@ -188,7 +204,7 @@ class MainWindow(QWidget):
         _translate = QtCore.QCoreApplication.translate
         for i in range(64):
             self.comboBox.setItemText(i, _translate("Form", a[i]["province"]))
-
+            map_low_up[a[i]["province"]] =  map_city_vnese(a[i]["province"])
         self.lay = QVBoxLayout()
         self.scrollAreaWidgetContents.setLayout(self.lay)
         self.lay.setSpacing(10)
@@ -232,10 +248,19 @@ class MainWindow(QWidget):
         # org = gps_data['org']
         province = gps_data['region']
         print(province)
-        index = self.comboBox.findText(province, QtCore.Qt.MatchFixedString)
-        if index >= 0:
-            self.comboBox.setCurrentIndex(index)
+        province = province.lower().replace(' ','')
+        for i in range(64):
+            print('so sanh')
+            print(map_low_up[self.comboBox.itemText(i)])
+            if (province == map_low_up[self.comboBox.itemText(i)]):
+                print('find')
+                print(i)
+                self.comboBox.setCurrentIndex(i)
+        # index = self.comboBox.findText(province, QtCore.Qt.MatchFixedString)
+        # if index >= 0:
+        #     self.comboBox.setCurrentIndex(index)
         location = self.comboBox.currentText()
+        print(location)
         city_code = city_to_code(location)
         city_hashed_code = hash_city(city_code)
         data = {'userId': self.manager.user['userId'], 'currentCity': city_hashed_code}
@@ -271,7 +296,9 @@ class MainWindow(QWidget):
         url = base + "static/" + user['avatarUrl']
         img = QImage()
         img.loadFromData(requests.get(url).content)
-        self.label_5.setPixmap(QPixmap(img))
+        pim = QPixmap(img)
+        pim = pim.scaled(50,50)
+        self.label_5.setPixmap(pim)
 
     def clear_data(self):
         for i in reversed(range(self.lay.count())):
@@ -317,7 +344,9 @@ class MainWindow(QWidget):
                 url = base + "static/" + u['avatarUrl']
                 img = QImage()
                 img.loadFromData(requests.get(url).content)
-                label.setPixmap(QPixmap(img))
+                pim = QPixmap(img)
+                pim = pim.scaled(50,50)
+                label.setPixmap(pim)
 
                 
                 label.setObjectName("label")
